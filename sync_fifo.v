@@ -1,4 +1,9 @@
+/****************************/
 //sync_fifo design example
+//      DATAWIDTH = 8;
+//      ADDRDEPTH = 16;
+//      ADDRWIDTH = 4;
+/***************************/
 module sync_fifo(clk,rst,wr_en,rd_en,data_in,data_out,f_empty,f_full);
 parameter           DATAWIDTH = 8;
 parameter           ADDRDEPTH = 16;
@@ -57,3 +62,45 @@ assign f_full =(r_addr_a[ADDRWIDTH]!=w_addr_a[ADDRWIDTH]
             ?1:0;
 
 endmodule
+
+
+
+/****************************/
+//sync_fifo testbench example
+//      DATAWIDTH = 8;
+//      ADDRDEPTH = 16;
+//      ADDRWIDTH = 4;
+/***************************/
+`timescale  10ns\1ns
+module tb_sync_fifo(clk,rst,wr_en,rd_en,data_in,data_out,f_empty,f_full);
+
+parameter           DATAWIDTH = 8;
+parameter           ADDRDEPTH = 16;
+parameter           ADDRWIDTH = 4;
+
+reg                         clk,rst,wr_en,rd_en;
+reg     [DATAWIDTH-1:0]     data_in;
+wire                        f_empty,f_full;
+wire    [DATAWIDTH-1:0]     data_out;
+
+sync_fifo   sync_fifo_0(
+                    .clk(clk),.rst(rst),
+                    .wr_en(wr_en),.rd_en(rd_en),
+                    .data_in(data_in),.data_out(data_out),
+                    .f_empty(f_empty),.f_full(f_full)
+                );
+
+always #5 clk=~clk;
+
+//inital setting;
+initial begin
+    clk=1;
+    rst=0;
+    wr_en=0;
+    rd_en=0;
+    data_in=(DATAWIDTH+1)'b0;
+end
+
+initial begin
+
+end
