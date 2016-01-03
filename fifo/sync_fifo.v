@@ -27,7 +27,7 @@ assign w_addr=w_addr_a[ADDRWIDTH-1:0];
 always@(posedge clk or negedge rst)
 begin
     if(!rst)begin
-        r_addr_a<=(ADDRWIDTH+1)'b0;
+        r_addr_a<='b0;
     end
     else begin
         if(rd_en&&(!f_empty))begin
@@ -43,11 +43,11 @@ end
 always@(posedge clk or negedge rst)
 begin
     if(!rst)begin
-        w_addr_a<=(ADDRWIDTH+1)'b0;
+        w_addr_a<='b0;
     end
     else begin
         if(wr_en&&(!f_full))begin
-            mem[r_addr]<=data_in;
+            mem[w_addr]<=data_in;
             w_addr_a<=w_addr_a+1;
         end
     end
@@ -71,8 +71,8 @@ endmodule
 //      ADDRDEPTH = 16;
 //      ADDRWIDTH = 4;
 /***************************/
-`timescale  10ns\1ns
-module tb_sync_fifo(clk,rst,wr_en,rd_en,data_in,data_out,f_empty,f_full);
+`timescale  10ns/1ns
+module tb_sync_fifo();
 
 parameter           DATAWIDTH = 8;
 parameter           ADDRDEPTH = 16;
@@ -95,12 +95,48 @@ always #5 clk=~clk;
 //inital setting;
 initial begin
     clk=1;
-    rst=0;
+    rst=1;
     wr_en=0;
     rd_en=0;
-    data_in=(DATAWIDTH+1)'b0;
+    data_in='b0;
 end
 
+//reset,time < 30;
 initial begin
-
+    #15     rst=0;
+    #10     rst=1;
 end
+
+//write data
+initial begin
+    #30     begin wr_en=1;data_in='b1;end
+    #10     data_in='d2;
+    #10     data_in='d3;
+    #10     data_in='d4;
+    #10     data_in='d5;
+    #10     data_in='d6;
+    #10     data_in='d7;
+    #10     data_in='d8;
+    #10     data_in='d9;
+    #10     data_in='d10;
+    #10     data_in='d11;
+    #10     data_in='d12;
+    #10     data_in='d13;
+    #10     data_in='d14;
+    #10     data_in='d15;
+    #10     data_in='d16;
+    #10     data_in='d17;
+    #10     data_in='d18;
+    #10     wr_en=0;
+end
+
+//read data
+initial begin
+    #260    rd_en=1;
+    #500    rd_en=0;
+    #10     $finish;
+end
+
+initial begin $dumpfile("tb_sync_fifo.vcd");$dumpvars(0,tb_sync_fifo);end
+
+endmodule
