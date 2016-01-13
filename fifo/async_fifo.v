@@ -16,14 +16,13 @@ output  [DATAWIDTH-1:0]     data_out;
 
 reg     [DATAWIDTH-1:0]     mem[ADDRDEPTH-1:0];
 reg     [DATAWIDTH-1:0]     data_out;
-wire    [ADDRWIDTH-1:0]     w_addr,r_addr;
 reg     [ADDRWIDTH:0]       w_addr_a,r_addr_a;
-wire    [ADDRWIDTH-1:0]     w_addr_g,r_addr_g;
+wire    [ADDRWIDTH:0]       w_addr_g,r_addr_g;//gray code output
+reg     [ADDRWIDTH:0]       r_addr_c;//gray read address -> write clock;just for full flag
+reg     [ADDRWIDTH:0]       w_addr_c;//gray witer address -> read clock;just for empty flag
 
-assign r_addr=r_addr_a[ADDRWIDTH-1:0];
-assign w_addr=w_addr_a[ADDRWIDTH-1:0];
-GRAYTRAN g_r(.bin(r_addr),.gray(r_addr_g));
-GRAYTRAN g_w(.bin(w_addr),.gray(w_addr_g));
+GRAYTRAN g_r(.bin(r_addr_a),.gray(r_addr_g));
+GRAYTRAN g_w(.bin(w_addr_a),.gray(w_addr_g));
 /****************************/
 //Read operation
 /***************************/
@@ -31,10 +30,12 @@ always@(posedge clk_rd or negedge rst)
 begin
     if(!rst)begin
         r_addr_a<='b0;
+        w_addr_c<='b0;
     end
     else begin
+        w_addr_c<=w_addr_g;
         if(rd_en&&(!f_empty))begin
-            data_out<=mem[r_addr_g];
+            data_out<=mem[r_addr_g[ADDRWIDTH-1:0]];
             r_addr_a<=r_addr_a+1;
         end
     end
@@ -47,10 +48,12 @@ always@(posedge clk_wr or negedge rst)
 begin
     if(!rst)begin
         w_addr_a<='b0;
+        r_addr_c<='b0;
     end
     else begin
+        r_addr_c<=r_addr_g;
         if(wr_en&&(!f_full))begin
-            mem[w_addr_g]<=data_in;
+            mem[w_addr_g[ADDRWIDTH-1:0]]<=data_in;
             w_addr_a<=w_addr_a+1;
         end
     end
@@ -59,12 +62,10 @@ end
 /****************************/
 //Empty flag and Full flag
 /***************************/
-assign f_full =(r_addr_a[ADDRWIDTH]!=w_addr_a[ADDRWIDTH]
-            &&  r_addr_g[ADDRWIDTH-1:0]==w_addr_g[ADDRWIDTH-1:0])
+assign f_full =(r_addr_c[ADDRWIDTH]!=w_addr_g[ADDRWIDTH]
+            &&  r_addr_c[ADDRWIDTH-1:0]==w_addr_g[ADDRWIDTH-1:0])
             ?1:0;
-assign f_empty=(r_addr_a[ADDRWIDTH]==w_addr_a[ADDRWIDTH]
-            &&  r_addr_g[ADDRWIDTH-1:0]==w_addr_g[ADDRWIDTH-1:0])
-            ?1:0;
+assign f_empty=(r_addr_g==w_addr_c)?1:0;
 
 endmodule
 
@@ -77,10 +78,11 @@ endmodule
 module GRAYTRAN(bin,gray);
 parameter           ADDRDEPTH = 16;
 parameter           ADDRWIDTH = 4;
-input   [ADDRWIDTH-1:0] bin;
-output  [ADDRWIDTH-1:0] gray;
-wire    [ADDRWIDTH-1:0] gray;
+input   [ADDRWIDTH:0] bin;
+output  [ADDRWIDTH:0] gray;
+wire    [ADDRWIDTH:0] gray;
 
+assign gray[4]=bin[4];
 assign gray[3]=bin[3];
 assign gray[2]=bin[3]^bin[2];
 assign gray[1]=bin[2]^bin[1];
@@ -136,7 +138,8 @@ end
 
 //write data,wr_clk period:#20
 initial begin
-    #100     begin wr_en=1;data_in='d1;end
+    #100    wr_en=1;
+    #20     data_in='d1;
     #20     data_in='d2;
     #20     data_in='d3;
     #20     data_in='d4;
